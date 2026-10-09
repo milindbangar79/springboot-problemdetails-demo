@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">problemdetails-demo</a> &gt; <a href="index.source.html" class="el_package">com.spring.problemdetails.service</a> &gt; <span class="el_source">EmployeeService.java</span></div><h1>EmployeeService.java</h1><pre class="source lang-java linenums">package com.spring.problemdetails.service;
+
+import com.spring.problemdetails.dto.CreateEmployeeRequest;
+import com.spring.problemdetails.dto.UpdateEmployeeRequest;
+import com.spring.problemdetails.exception.DuplicateResourceException;
+import com.spring.problemdetails.exception.InvalidSalaryException;
+import com.spring.problemdetails.exception.ResourceNotFoundException;
+import com.spring.problemdetails.model.Employee;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Service
+public class EmployeeService {
+
+<span class="fc" id="L20">    private final Map&lt;Long, Employee&gt; store = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L21">    private final AtomicLong idSequence = new AtomicLong(3);</span>
+
+<span class="fc" id="L23">    public EmployeeService() {</span>
+<span class="fc" id="L24">        store.put(1L, new Employee(1L, &quot;Alice Johnson&quot;, &quot;Engineering&quot;, &quot;alice@example.com&quot;, 95000));</span>
+<span class="fc" id="L25">        store.put(2L, new Employee(2L, &quot;Bob Smith&quot;, &quot;Marketing&quot;, &quot;bob@example.com&quot;, 72000));</span>
+<span class="fc" id="L26">        store.put(3L, new Employee(3L, &quot;Carol White&quot;, &quot;HR&quot;, &quot;carol@example.com&quot;, 68000));</span>
+<span class="fc" id="L27">    }</span>
+
+    public List&lt;Employee&gt; findAll() {
+<span class="fc" id="L30">        return new ArrayList&lt;&gt;(store.values());</span>
+    }
+
+    public Employee findById(Long id) {
+<span class="fc" id="L34">        Employee employee = store.get(id);</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (employee == null) {</span>
+<span class="fc" id="L36">            throw new ResourceNotFoundException(&quot;Employee with id %d not found&quot;.formatted(id));</span>
+        }
+<span class="fc" id="L38">        return employee;</span>
+    }
+
+    public Employee create(CreateEmployeeRequest request) {
+<span class="fc" id="L42">        boolean emailTaken = store.values().stream()</span>
+<span class="fc" id="L43">                .anyMatch(e -&gt; e.email().equalsIgnoreCase(request.email()));</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (emailTaken) {</span>
+<span class="fc" id="L45">            throw new DuplicateResourceException(</span>
+<span class="fc" id="L46">                    &quot;Employee with email '%s' already exists&quot;.formatted(request.email()));</span>
+        }
+<span class="fc" id="L48">        long id = idSequence.incrementAndGet();</span>
+<span class="fc" id="L49">        Employee employee = new Employee(id, request.name(), request.department(), request.email(), request.salary());</span>
+<span class="fc" id="L50">        store.put(id, employee);</span>
+<span class="fc" id="L51">        return employee;</span>
+    }
+
+    public Employee update(Long id, UpdateEmployeeRequest request) {
+<span class="fc" id="L55">        Employee existing = findById(id);</span>
+        // Business rule: salary cannot be reduced by more than 10%
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (request.salary() &lt; existing.salary() * 0.9) {</span>
+<span class="fc" id="L58">            throw new InvalidSalaryException(</span>
+                    &quot;Salary reduction of more than 10%% is not permitted&quot;,
+<span class="fc" id="L60">                    existing.salary(),</span>
+<span class="fc" id="L61">                    request.salary()</span>
+            );
+        }
+<span class="fc" id="L64">        Employee updated = new Employee(id, request.name(), request.department(), request.email(), request.salary());</span>
+<span class="fc" id="L65">        store.put(id, updated);</span>
+<span class="fc" id="L66">        return updated;</span>
+    }
+
+    public void delete(Long id) {
+<span class="fc" id="L70">        findById(id);</span>
+<span class="fc" id="L71">        store.remove(id);</span>
+<span class="fc" id="L72">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

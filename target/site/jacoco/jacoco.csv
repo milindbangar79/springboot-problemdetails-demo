@@ -1,0 +1,11 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+problemdetails-demo,com.spring.problemdetails.dto,CreateEmployeeRequest,0,15,0,0,0,1,0,1,0,1
+problemdetails-demo,com.spring.problemdetails.dto,UpdateEmployeeRequest,0,15,0,0,0,1,0,1,0,1
+problemdetails-demo,com.spring.problemdetails.advice,GlobalExceptionHandler,0,81,0,0,0,21,0,4,0,4
+problemdetails-demo,com.spring.problemdetails.exception,DuplicateResourceException,0,4,0,0,0,2,0,1,0,1
+problemdetails-demo,com.spring.problemdetails.exception,InvalidSalaryException,0,16,0,0,0,6,0,3,0,3
+problemdetails-demo,com.spring.problemdetails.exception,ResourceNotFoundException,0,4,0,0,0,2,0,1,0,1
+problemdetails-demo,com.spring.problemdetails,ProblemDetailsApplication,5,3,0,0,2,1,1,1,1,1
+problemdetails-demo,com.spring.problemdetails.model,Employee,0,18,0,0,0,1,0,1,0,1
+problemdetails-demo,com.spring.problemdetails.service,EmployeeService,0,196,0,6,0,32,0,10,0,7
+problemdetails-demo,com.spring.problemdetails.controller,EmployeeController,0,31,0,0,0,9,0,6,0,6
