@@ -6,54 +6,57 @@ import com.spring.problemdetails.exception.DuplicateResourceException;
 import com.spring.problemdetails.exception.InvalidSalaryException;
 import com.spring.problemdetails.exception.ResourceNotFoundException;
 import com.spring.problemdetails.model.Employee;
+import com.spring.problemdetails.repository.EmployeeRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class EmployeeService {
 
-    private final Map<Long, Employee> store = new ConcurrentHashMap<>();
-    private final AtomicLong idSequence = new AtomicLong(3);
+    private final EmployeeRepository repository;
 
-    public EmployeeService() {
-        store.put(1L, new Employee(1L, "Alice Johnson", "Engineering", "alice@example.com", 95000));
-        store.put(2L, new Employee(2L, "Bob Smith", "Marketing", "bob@example.com", 72000));
-        store.put(3L, new Employee(3L, "Carol White", "HR", "carol@example.com", 68000));
+    public EmployeeService(EmployeeRepository repository) {
+        this.repository = repository;
     }
 
+    @Cacheable("employees-all")
     public List<Employee> findAll() {
-        return new ArrayList<>(store.values());
+        return repository.findAll();
     }
 
+    @Cacheable(value = "employees", key = "#id")
     public Employee findById(Long id) {
-        Employee employee = store.get(id);
-        if (employee == null) {
-            throw new ResourceNotFoundException("Employee with id %d not found".formatted(id));
-        }
-        return employee;
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Employee with id %d not found".formatted(id)));
     }
 
+    @CacheEvict(value = "employees-all", allEntries = true)
     public Employee create(CreateEmployeeRequest request) {
-        boolean emailTaken = store.values().stream()
-                .anyMatch(e -> e.email().equalsIgnoreCase(request.email()));
-        if (emailTaken) {
+        // Optimistic insert: let the UNIQUE index enforce email uniqueness (one DB round-trip
+        // instead of SELECT + INSERT) — better throughput under concurrent creates
+        try {
+            return repository.save(
+                    request.name(), request.department(), request.email(), request.salary());
+        } catch (DataIntegrityViolationException ex) {
             throw new DuplicateResourceException(
                     "Employee with email '%s' already exists".formatted(request.email()));
         }
-        long id = idSequence.incrementAndGet();
-        Employee employee = new Employee(id, request.name(), request.department(), request.email(), request.salary());
-        store.put(id, employee);
-        return employee;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "employees", key = "#id"),
+            @CacheEvict(value = "employees-all", allEntries = true)
+    })
     public Employee update(Long id, UpdateEmployeeRequest request) {
-        Employee existing = findById(id);
-        // Business rule: salary cannot be reduced by more than 10%
+        Employee existing = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Employee with id %d not found".formatted(id)));
         if (request.salary() < existing.salary() * 0.9) {
             throw new InvalidSalaryException(
                     "Salary reduction of more than 10%% is not permitted",
@@ -61,13 +64,18 @@ public class EmployeeService {
                     request.salary()
             );
         }
-        Employee updated = new Employee(id, request.name(), request.department(), request.email(), request.salary());
-        store.put(id, updated);
-        return updated;
+        return repository.update(
+                id, request.name(), request.department(), request.email(), request.salary());
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "employees", key = "#id"),
+            @CacheEvict(value = "employees-all", allEntries = true)
+    })
     public void delete(Long id) {
-        findById(id);
-        store.remove(id);
+        repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Employee with id %d not found".formatted(id)));
+        repository.deleteById(id);
     }
 }

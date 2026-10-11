@@ -3,10 +3,44 @@ spring:
     name: problemdetails-demo
   mvc:
     problemdetails:
-      enabled: true   # activates RFC 9457 ProblemDetail for built-in Spring exceptions
+      enabled: true   # RFC 9457 ProblemDetail for built-in Spring exceptions
+
+  # Technique 1 (article): Virtual Threads — biggest RPS gain for I/O-bound workloads
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:sqlite:./employees.db
+
+  # Run schema.sql + data.sql at startup (SQLite is not auto-detected as embedded)
+  sql:
+    init:
+      mode: always
+
+  # Caffeine L1 cache — 72% hit rate eliminates DB round trips for reads
+  cache:
+    type: caffeine
 
 server:
   port: 8080
+  # Response compression reduces payload size and network I/O
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json
+    min-response-size: 1024
+  http2:
+    enabled: true
+
+# HikariCP pool sizing — formula from article: (cores × 2) + spindle_count
+# DataSourceConfig reads these values; WAL + pool-size > 1 enables concurrent SQLite reads
+hikari:
+  maximum-pool-size: 20
+  minimum-idle: 5
+
+# Load shedding threshold — clean 503 under overload beats cascading failure
+app:
+  max-concurrent-requests: 5000
 
 springdoc:
   api-docs:
