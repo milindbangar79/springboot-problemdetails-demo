@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    # Shared in-memory SQLite — all pool connections see the same DB
+    url: jdbc:sqlite:file::memory:?cache=shared
+  sql:
+    init:
+      mode: always
+
+# Pool size 1 — required for shared in-memory SQLite to avoid separate DB instances
+hikari:
+  maximum-pool-size: 1
+  minimum-idle: 1

@@ -14,7 +14,6 @@ import java.time.Instant;
 
 /**
  * Translates domain exceptions into RFC 9457 ProblemDetail responses.
- *
  * Spring automatically handles MethodArgumentNotValidException (validation failures)
  * as ProblemDetail when spring.mvc.problemdetails.enabled=true, so only custom
  * exceptions need explicit handlers here.
