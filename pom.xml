@@ -21,6 +21,8 @@
         <sonar.tests>src/test/java</sonar.tests>
         <jmh.version>1.37</jmh.version>
         <sqlite-jdbc.version>3.46.1.3</sqlite-jdbc.version>
+        <karate.version>1.4.0</karate.version>
+        <rest-assured.version>5.5.0</rest-assured.version>
     </properties>
     <dependencies>
         <dependency>
@@ -91,6 +93,22 @@
             <version>${jmh.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Karate E2E integration tests -->
+        <dependency>
+            <groupId>com.intuit.karate</groupId>
+            <artifactId>karate-junit5</artifactId>
+            <version>${karate.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- RestAssured E2E integration tests -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -114,6 +132,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*IT.java</include>
+                        <include>**/KarateIntegrationRunner.java</include>
+                    </includes>
                     <excludes>
                         <exclude>**/*Benchmark*</exclude>
                         <exclude>**/BenchmarkRunner*</exclude>
@@ -237,6 +261,7 @@
                     </targetTests>
                     <excludedTestClasses>
                         <param>com.spring.problemdetails.benchmark.*</param>
+                        <param>com.spring.problemdetails.integration.*</param>
                     </excludedTestClasses>
                     <mutators>
                         <mutator>DEFAULTS</mutator>
