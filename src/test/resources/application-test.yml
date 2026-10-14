@@ -5,6 +5,11 @@ spring:
   sql:
     init:
       mode: always
+  # Disable virtual threads for tests: SQLite JDBC uses synchronized blocks that
+  # pin virtual threads to carriers, causing starvation with Karate's HTTP client
+  threads:
+    virtual:
+      enabled: false
 
 # Pool size 1 — required for shared in-memory SQLite to avoid separate DB instances
 hikari:

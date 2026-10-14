@@ -28,3 +28,5 @@ target
 employees.db-shm
 employees.db-wal
 employees.db
+
+.idea
