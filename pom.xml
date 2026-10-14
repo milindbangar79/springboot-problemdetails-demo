@@ -22,7 +22,9 @@
         <jmh.version>1.37</jmh.version>
         <sqlite-jdbc.version>3.46.1.3</sqlite-jdbc.version>
         <karate.version>1.4.0</karate.version>
-        <rest-assured.version>5.5.0</rest-assured.version>
+        <rest-assured.version>5.3.2</rest-assured.version>
+        <!-- GraalVM 24.0.0: uses MethodHandles.Lookup.ensureInitialized (Java 27 safe). -->
+        <graalvm.version>24.0.0</graalvm.version>
     </properties>
     <dependencies>
         <dependency>
@@ -94,15 +96,42 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Karate E2E integration tests -->
+        <!-- Karate E2E integration tests.
+             GraalVM 22.3.0 (bundled with Karate 1.4.0) calls sun.misc.Unsafe.ensureClassInitialized
+             which was removed in Java 27. GraalVM 24.0.0 replaced it with
+             MethodHandles.Lookup.ensureInitialized. Exclude old GraalVM and add 24.0.0 below. -->
         <dependency>
             <groupId>com.intuit.karate</groupId>
             <artifactId>karate-junit5</artifactId>
             <version>${karate.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion><groupId>org.graalvm.sdk</groupId><artifactId>graal-sdk</artifactId></exclusion>
+                <exclusion><groupId>org.graalvm.js</groupId><artifactId>js-scriptengine</artifactId></exclusion>
+                <exclusion><groupId>org.graalvm.js</groupId><artifactId>js</artifactId></exclusion>
+                <exclusion><groupId>org.graalvm.regex</groupId><artifactId>regex</artifactId></exclusion>
+                <exclusion><groupId>org.graalvm.truffle</groupId><artifactId>truffle-api</artifactId></exclusion>
+            </exclusions>
         </dependency>
+        <!-- GraalVM 24.0.0: Java 27 compatible replacements for Karate's bundled 22.3.0 -->
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.js</groupId>
+            <artifactId>js-language</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- js-scriptengine excluded: its JSR-223 factory triggers GraalVM initialization
+             which corrupts Groovy's MetaClass registry — Karate uses the polyglot API directly. -->
 
-        <!-- RestAssured E2E integration tests -->
+        <!-- RestAssured E2E integration tests.
+             Uses 5.3.2 (Groovy 4.x) rather than 5.5.0 (Groovy 5.0.8): Groovy 5.0.8 has a
+             ClosureMetaClass NPE when GraalVM 24.x is on the classpath on Java 27. -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
@@ -142,6 +171,10 @@
                         <exclude>**/*Benchmark*</exclude>
                         <exclude>**/BenchmarkRunner*</exclude>
                     </excludes>
+                    <!-- Groovy 5.x (used by RestAssured) + GraalVM 24.x on Java 27:
+                         groovy.use.classvalue uses ClassValue instead of WeakReference maps
+                         for MetaClass caching, preventing NPE from stale GraalVM class refs. -->
+                    <argLine>@{argLine} -Dgroovy.use.classvalue=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -190,6 +223,14 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <!-- Restrict instrumentation to project classes only.
+                                 Without this, JaCoCo tries to instrument JDK 27 classes and
+                                 prints a stack trace per class (thousands of errors). -->
+                            <includes>
+                                <include>com/spring/problemdetails/**</include>
+                            </includes>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>report</id>

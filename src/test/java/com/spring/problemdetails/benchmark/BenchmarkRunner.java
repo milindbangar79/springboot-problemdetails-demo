@@ -20,12 +20,13 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class BenchmarkRunner {
 
     public static void main(String[] args) throws RunnerException {
+        String outputFile = System.getProperty("benchmark.output", "target/benchmark-results.json");
         Options opts = new OptionsBuilder()
                 .include(EmployeeCrudBenchmark.class.getSimpleName())
                 .include(CacheEffectBenchmark.class.getSimpleName())
                 .include(ThreadModelBenchmark.class.getSimpleName())
                 .resultFormat(ResultFormatType.JSON)
-                .result("target/benchmark-results.json")
+                .result(outputFile)
                 .build();
         new Runner(opts).run();
     }
